@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+
+import sys
+import re
+import yaml
+from sys import stderr
+
+try:
+    with open('linksmap.yml') as file:
+        linksmap = yaml.load(file)
+except EnvironmentError:
+    print("Not valid linksmap file found, remember it must be an yml!", file=stderr)
+except yaml.parser.ParserError as parser_error:
+    print(str(parser_error), file=stderr)
+except yaml.scanner.ScannerError as scanner_error:
+    print(str(scanner_error), file=stderr)
+
+for word in linksmap:
+    try:
+        with open(sys.argv[1]) as file:
+            data = file.read()
+    except EnvironmentError:
+        print("You must enter an valid file", file=stderr)
+
+    searched = [word['word']]
+    searched += [word.strip() for word in word['synonymous'].split(',')]
+
+    searched_rgx = r'|'.join(searched)
+    searched_rgx = r'({})([^\w|^\]])'.format(searched_rgx)
+    searched_rgx = re.compile(searched_rgx, flags=re.I)
+
+    if word['alias']:
+        result = searched_rgx.subn(
+            '[{}]{}'.format('\g<1>', '\g<2>'), data
+        )
+
+        with open(sys.argv[1], 'w') as file:
+            file.write(result[0])
+
+            file.write('\n')
+            for synonimous in searched:
+                file.write('[{}]: {}\n'.format(synonimous, word['link']))
+    else:
+        result = searched_rgx.subn(
+            '[{}]({})'.format('\g<1>', word['link']), data
+        )
+
+        with open(sys.argv[1], 'w') as file:
+            file.write(result[0])
+         
+    print('Ended substituting word: {}, it was substituted {} times!'
+            .format(word['word'], result[1]))
+
+print('Ended substituting all words')
