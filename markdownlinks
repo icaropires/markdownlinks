@@ -23,26 +23,31 @@ for word in linksmap:
         print("You must enter an valid file", file=stderr)
 
     searched = [word['word']]
-    searched += [word.strip() for word in word['synonymous'].split(',')]
+
+    if word['synonymous']:
+        searched += [word.strip() for word in word['synonymous'].split(',')]
+    else:
+        searched_rgx = searched
 
     searched_rgx = r'|'.join(searched)
-    searched_rgx = r'({})([^\w|^\]])'.format(searched_rgx)
+    searched_rgx = r'([^\w|^\]])({})([^\w|^\]])'.format(searched_rgx)
     searched_rgx = re.compile(searched_rgx, flags=re.I)
 
     if word['alias']:
         result = searched_rgx.subn(
-            '[{}]{}'.format('\g<1>', '\g<2>'), data
+            '{}[{}]{}'.format('\g<1>', '\g<2>', '\g<3>'), data
         )
 
         with open(sys.argv[1], 'w') as file:
             file.write(result[0])
 
-            file.write('\n')
-            for synonimous in searched:
-                file.write('[{}]: {}\n'.format(synonimous, word['link']))
+            if result[1]:
+                file.write('\n')
+                for synonimous in searched:
+                    file.write('[{}]: {}\n'.format(synonimous, word['link']))
     else:
         result = searched_rgx.subn(
-            '[{}]({})'.format('\g<1>', word['link']), data
+            '[{}]({})'.format('\g<2>', word['link']), data
         )
 
         with open(sys.argv[1], 'w') as file:
